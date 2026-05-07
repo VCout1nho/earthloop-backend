@@ -19,14 +19,25 @@ const transporter = nodemailer.createTransport({
 
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS
   },
 
   tls: {
     rejectUnauthorized: false
   },
 
-  family: 4
+  family: 4,
+
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000
+});
+transporter.verify((error, success) => {
+  if (error) {
+    console.log("Erro SMTP:", error);
+  } else {
+    console.log("SMTP conectado!");
+  }
 });
 app.use(cors());
 app.use(express.json()); 
