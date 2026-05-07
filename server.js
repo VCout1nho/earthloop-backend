@@ -14,13 +14,6 @@ const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const app = express();
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("Erro SMTP:", error);
-  } else {
-    console.log("SMTP conectado!");
-  }
-});
 app.use(cors());
 app.use(express.json()); 
 
@@ -125,18 +118,17 @@ app.post("/api/contato", async (req, res) => {
   `
 });
 
-    // 📧 Email pra você (admin)
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      subject: `📩 Novo ticket - ${assunto}`,
-      html: `
-        <h2>Novo contato recebido</h2>
-        <p><b>Nome:</b> ${nome}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Mensagem:</b><br/>${mensagem}</p>
-      `
-    });
+    await resend.emails.send({
+  from: "onboarding@resend.dev",
+  to: process.env.EMAIL_USER,
+  subject: `📩 Novo ticket - ${assunto}`,
+  html: `
+    <h2>Novo contato recebido</h2>
+    <p><b>Nome:</b> ${nome}</p>
+    <p><b>Email:</b> ${email}</p>
+    <p><b>Mensagem:</b><br/>${mensagem}</p>
+  `
+});
 
     res.json({ message: "Ticket criado com sucesso!" });
 
