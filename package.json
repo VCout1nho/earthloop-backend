@@ -27,6 +27,7 @@
     "openai": "^6.32.0",
     "react-leaflet": "^5.0.0",
     "recharts": "^3.8.0",
+    "resend": "^6.12.3",
     "tailwindcss": "^4.2.1"
   }
 }

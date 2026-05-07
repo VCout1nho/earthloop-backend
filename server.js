@@ -8,7 +8,9 @@ const mongoose = require("mongoose");
 const OpenAI = require("openai");
 const bcrypt = require("bcrypt");
 const User = require("./models/User");
+const { Resend } = require("resend");
 
+const resend = new Resend(process.env.RESEND_API_KEY);
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const app = express();
@@ -132,15 +134,16 @@ app.post("/api/contato", async (req, res) => {
     });
 
     // 📧 Email pro cliente
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: `Recebemos sua mensagem - ${assunto}`,
-      html: /* EMAIL BONITO AQUI */ 
-        `<h2>Olá ${nome},</h2>
-        <p>Obrigado por entrar em contato com a EarthLoop! Recebemos sua mensagem e nossa equipe irá respondê-lo o mais breve possível.</p>
-        <p><b>Assunto:</b> ${assunto}</p>
-      ` });
+    await resend.emails.send({
+  from: "onboarding@resend.dev",
+  to: email,
+  subject: `Recebemos sua mensagem - ${assunto}`,
+  html: `
+    <h2>Olá ${nome}</h2>
+    <p>Recebemos sua mensagem e responderemos em breve.</p>
+    <p><b>Assunto:</b> ${assunto}</p>
+  `
+});
 
     // 📧 Email pra você (admin)
     await transporter.sendMail({
