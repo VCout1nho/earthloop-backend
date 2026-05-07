@@ -10,6 +10,7 @@ const bcrypt = require("bcrypt");
 const User = require("./models/User");
 
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
 const app = express();
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -221,8 +222,36 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ error: "Erro no servidor" });
   }
 });
+app.get("/api/places", async (req, res) => {
+  try {
+
+    const query = req.query.data;
+
+    const response = await axios.post(
+      "https://overpass-api.de/api/interpreter",
+      query,
+      {
+        headers: {
+          "Content-Type": "text/plain"
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+
+    console.log("Erro Overpass:", error.message);
+
+    res.status(500).json({
+      error: "Erro ao buscar locais"
+    });
+  }
+});
 
 // 🚀 START
-app.listen(5000, () => {
-  console.log("🌍 API rodando em http://localhost:5000");
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🌍 API rodando na porta ${PORT}`);
 });
