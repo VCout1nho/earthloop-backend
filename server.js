@@ -25,10 +25,15 @@ app.use(express.json());
 console.log("🚀 Iniciando EarthLoop API");
 
 
-// 🔗 Mongo (opcional)
-mongoose.connect("mongodb://127.0.0.1:27017/earthloop")
-.then(() => console.log("✅ Mongo conectado"))
-.catch(err => console.log("❌ Erro Mongo:", err.message));
+// 🔗 MongoDB Atlas (do Render)
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/earthloop";
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Atlas conectado com sucesso!"))
+  .catch(err => {
+    console.log("❌ Erro Mongo:", err.message);
+    console.log("MONGO_URI configurado?", !!process.env.MONGO_URI);
+  });
 
 // 🤖 OpenAI
 const openai = new OpenAI({
