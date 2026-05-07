@@ -227,12 +227,16 @@ app.get("/api/places", async (req, res) => {
 
     const query = req.query.data;
 
+    const params = new URLSearchParams();
+    params.append("data", query);
+
     const response = await axios.post(
       "https://overpass-api.de/api/interpreter",
-      query,
+      params,
       {
         headers: {
-          "Content-Type": "text/plain"
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "EarthLoop/1.0"
         }
       }
     );
@@ -241,7 +245,10 @@ app.get("/api/places", async (req, res) => {
 
   } catch (error) {
 
-    console.log("Erro Overpass:", error.message);
+    console.log(
+      "Erro Overpass:",
+      error.response?.data || error.message
+    );
 
     res.status(500).json({
       error: "Erro ao buscar locais"
