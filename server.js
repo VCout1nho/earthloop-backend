@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const Ticket = require("./models/Ticket");
-const Anuncio = require("./models/Anuncio");
+const Anuncio = require("./models/Anuncios");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
