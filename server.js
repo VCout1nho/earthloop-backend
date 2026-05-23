@@ -9,6 +9,7 @@ const OpenAI = require("openai");
 const bcrypt = require("bcrypt");
 const User = require("./models/User");
 const { Resend } = require("resend");
+const Anuncio = require("./models/Anuncio");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const jwt = require("jsonwebtoken");
@@ -325,6 +326,69 @@ app.delete("/api/anuncios/:id", autenticar, async (req, res) => {
   }
 });
 
+function autenticar(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "Token não fornecido" });
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "SEGREDO_SUPER_SEGURO");
+    req.userId = decoded.id;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Token inválido ou expirado" });
+  }
+}
+
+app.get("/api/anuncios/todos", async (req, res) => {
+  try {
+    const anuncios = await Anuncio.find().sort({ createdAt: -1 });
+    res.json(anuncios);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao buscar anúncios" });
+  }
+});
+
+app.get("/api/anuncios", autenticar, async (req, res) => {
+  try {
+    const anuncios = await Anuncio.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(anuncios);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao buscar anúncios" });
+  }
+});
+
+app.post("/api/anuncios", autenticar, async (req, res) => {
+  try {
+    const anuncio = await Anuncio.create({ ...req.body, userId: req.userId });
+    res.status(201).json(anuncio);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao criar anúncio" });
+  }
+});
+
+app.put("/api/anuncios/:id", autenticar, async (req, res) => {
+  try {
+    const anuncio = await Anuncio.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true }
+    );
+    if (!anuncio) return res.status(404).json({ error: "Anúncio não encontrado" });
+    res.json(anuncio);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao atualizar anúncio" });
+  }
+});
+
+app.delete("/api/anuncios/:id", autenticar, async (req, res) => {
+  try {
+    const anuncio = await Anuncio.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!anuncio) return res.status(404).json({ error: "Anúncio não encontrado" });
+    res.json({ message: "Anúncio removido com sucesso" });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao remover anúncio" });
+  }
+});
 
 // 🚀 START
 const PORT = process.env.PORT || 5000;
