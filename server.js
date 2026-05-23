@@ -9,7 +9,6 @@ const OpenAI = require("openai");
 const bcrypt = require("bcrypt");
 const User = require("./models/User");
 const { Resend } = require("resend");
-const Anuncio = require("./models/Anuncio");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const jwt = require("jsonwebtoken");
@@ -199,7 +198,7 @@ app.post("/api/login", async (req, res) => {
         email: user.email,
         tipo: user.tipo
       },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -252,7 +251,6 @@ app.get("/api/places", async (req, res) => {
   }
 });
 
-const Anuncio = require("./models/Anuncio");
 const jwt = require("jsonwebtoken");
  
 // Middleware de autenticação (reutilizável)
