@@ -250,8 +250,6 @@ app.get("/api/places", async (req, res) => {
     });
   }
 });
-
-const jwt = require("jsonwebtoken");
  
 // Middleware de autenticação (reutilizável)
 function autenticar(req, res, next) {
