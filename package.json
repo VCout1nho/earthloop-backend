@@ -30,4 +30,7 @@
     "resend": "^6.12.3",
     "tailwindcss": "^4.2.1"
   }
+  "scripts": {
+  "test": "jest"
+}
 }

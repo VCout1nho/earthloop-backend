@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const Ticket = require("./models/Ticket");
+const Anuncio = require("./models/Anuncio");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -197,7 +198,7 @@ app.post("/api/login", async (req, res) => {
         email: user.email,
         tipo: user.tipo
       },
-      "SEGREDO_SUPER_SEGURO", // depois coloca no .env
+      process.env.JWT_SECRET
       { expiresIn: "7d" }
     );
 
@@ -249,6 +250,81 @@ app.get("/api/places", async (req, res) => {
     });
   }
 });
+
+const Anuncio = require("./models/Anuncio");
+const jwt = require("jsonwebtoken");
+ 
+// Middleware de autenticação (reutilizável)
+function autenticar(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "Token não fornecido" });
+ 
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "SEGREDO_SUPER_SEGURO");
+    req.userId = decoded.id;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Token inválido ou expirado" });
+  }
+}
+ 
+// 📋 GET - Listar anúncios do usuário logado
+app.get("/api/anuncios", autenticar, async (req, res) => {
+  try {
+    const anuncios = await Anuncio.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(anuncios);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao buscar anúncios" });
+  }
+});
+ 
+// 📋 GET - Listar todos os anúncios (público, para o mapa)
+app.get("/api/anuncios/todos", async (req, res) => {
+  try {
+    const anuncios = await Anuncio.find().sort({ createdAt: -1 });
+    res.json(anuncios);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao buscar anúncios" });
+  }
+});
+ 
+// ➕ POST - Criar anúncio
+app.post("/api/anuncios", autenticar, async (req, res) => {
+  try {
+    const anuncio = await Anuncio.create({ ...req.body, userId: req.userId });
+    res.status(201).json(anuncio);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao criar anúncio" });
+  }
+});
+ 
+// ✏️ PUT - Editar anúncio (somente do próprio usuário)
+app.put("/api/anuncios/:id", autenticar, async (req, res) => {
+  try {
+    const anuncio = await Anuncio.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true }
+    );
+    if (!anuncio) return res.status(404).json({ error: "Anúncio não encontrado" });
+    res.json(anuncio);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao atualizar anúncio" });
+  }
+});
+ 
+// 🗑️ DELETE - Remover anúncio (somente do próprio usuário)
+app.delete("/api/anuncios/:id", autenticar, async (req, res) => {
+  try {
+    const anuncio = await Anuncio.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+    if (!anuncio) return res.status(404).json({ error: "Anúncio não encontrado" });
+    res.json({ message: "Anúncio removido com sucesso" });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao remover anúncio" });
+  }
+});
+
 
 // 🚀 START
 const PORT = process.env.PORT || 5000;
