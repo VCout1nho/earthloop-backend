@@ -1,4 +1,5 @@
 require("dotenv").config();
+require('./keep-alive');
 
 const Ticket = require("./models/Ticket");
 const Anuncio = require("./models/Anuncios");
@@ -288,4 +289,5 @@ app.delete("/api/anuncios/:id", autenticar, async (req, res) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
+app.get("/api/ping", (req, res) => res.json({ status: "ok" }));
 app.listen(PORT, () => console.log(`🌍 API rodando na porta ${PORT}`));
