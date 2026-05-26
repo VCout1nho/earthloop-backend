@@ -45,6 +45,110 @@ function autenticar(req, res, next) {
   }
 }
 
+// ─── ESG (Google Custom Search) ───────────────────────────────────────────────
+app.post("/api/esg", async (req, res) => {
+  try {
+    const marca = String(req.body?.marca || "").trim();
+    if (!marca) return res.status(400).json({ error: "Campo 'marca' é obrigatório" });
+
+    const apiKey = process.env.GOOGLE_API_KEY;
+    const cseId = process.env.GOOGLE_CSE_ID;
+    if (!apiKey || !cseId) {
+      return res.status(500).json({
+        error: "Variáveis GOOGLE_API_KEY e GOOGLE_CSE_ID não configuradas no servidor",
+      });
+    }
+
+    const query = `${marca} ESG sustentabilidade impacto ambiental responsabilidade social relatório`;
+    const response = await axios.get("https://www.googleapis.com/customsearch/v1", {
+      params: {
+        key: apiKey,
+        cx: cseId,
+        q: query,
+        num: 5,
+        lr: "lang_pt",
+      },
+      timeout: 10000,
+    });
+
+    const items = response.data?.items || [];
+    const fontes = items.map((item) => ({
+      titulo: item.title,
+      descricao: item.snippet,
+    }));
+
+    if (fontes.length === 0) {
+      return res.json({
+        analysis: {
+          name: marca,
+          resumo: `Não encontrei fontes ESG públicas suficientes no momento para “${marca}”.`,
+          why:
+            "Nas buscas recentes (Google Custom Search) não apareceu material suficiente e confiável para sustentar uma análise ESG completa. Tente informar o nome oficial da empresa e, se possível, o país (ex.: 'Natura Brasil') ou termos como 'relatório ESG', 'sustentabilidade', 'carbono' ou 'escopo 3'.",
+          recomendacoes: [
+            "Tente a busca com o nome oficial e país (ex.: 'Natura Brasil')",
+            "Verifique se existe relatório anual/ESG ou relatório de sustentabilidade no site oficial",
+            "Procure por informações verificáveis sobre metas de carbono e iniciativas sociais/ambientais",
+          ],
+          sustainability: null,
+          carbonEmission: "não encontrado nas fontes",
+          popularity: null,
+          socialResponsibility: null,
+          environmentalResponsibility: null,
+        },
+      });
+    }
+
+    const fontesTexto = fontes
+      .slice(0, 5)
+      .map((f, idx) => `[${idx + 1}] ${f.titulo}\n${f.descricao || ""}`.trim())
+      .join("\n\n");
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é um analista ESG. Você só pode usar as informações fornecidas nas FONTES. Não invente dados, não crie números nem alegações. Se não houver informação suficiente em FONTES, diga explicitamente que não foi encontrado.",
+        },
+        {
+          role: "user",
+          content: `Marca: ${marca}\n\nFONTES (títulos e trechos do Google Custom Search):\n${fontesTexto}\n\nTarefa:\n1) Escreva um RESUMO curto (1 parágrafo) do que as FONTES indicam sobre ESG.\n2) Escreva "POR QUE" com texto estruturado e em português, com estas seções: Ambiental, Social, Governança, Emissões de carbono. Em cada seção, use apenas o que estiver suportado pelas FONTES (se não houver, diga "não encontrado nas fontes").\n3) Escreva RECOMENDAÇÕES (3 itens) do que o usuário deve verificar ao avaliar a marca com base em ESG.\n4) Gere INDICADORES para UI (SE e SOMENTE SE houver suporte nas FONTES sobre metas/relatórios/ratings):\n- sustainability (0-100) ou null\n- environmentalResponsibility (0-100) ou null\n- socialResponsibility (0-100) ou null\n- popularity (0-100) ou null\n- carbonEmission (string curta: o que as FONTES dizem sobre metas/relatórios/indicadores; se não houver, 'não encontrado nas fontes')\n\nSaída: responda APENAS com JSON válido (sem texto extra) com as chaves:\n{\n  "name": string,\n  "resumo": string,\n  "why": string,\n  "recomendacoes": string[],\n  "sustainability": number|null,\n  "carbonEmission": string,\n  "popularity": number|null,\n  "socialResponsibility": number|null,\n  "environmentalResponsibility": number|null\n}`,
+        },
+      ],
+    });
+
+    const content = completion?.choices?.[0]?.message?.content || "{}";
+    let analysis = null;
+    try {
+      analysis = JSON.parse(content);
+    } catch (e) {
+      analysis = {
+        name: marca,
+        resumo: `Consegui buscar fontes, mas houve um problema ao formatar o resumo estruturado.`,
+        why:
+          "Tente novamente em alguns instantes. Se o problema persistir, verifique se as variáveis GOOGLE_API_KEY/GOOGLE_CSE_ID e a credencial OPENAI_API_KEY estão corretas no Render.",
+        recomendacoes: [
+          "Repetir a busca em alguns instantes",
+          "Checar variáveis de ambiente no Render",
+          "Confirmar que a marca está com o nome oficial e termos ESG",
+        ],
+        sustainability: null,
+        carbonEmission: "não encontrado nas fontes",
+        popularity: null,
+        socialResponsibility: null,
+        environmentalResponsibility: null,
+      };
+    }
+
+    return res.json({ analysis });
+  } catch (error) {
+    console.log("Erro ESG:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Erro ao consultar ESG na internet" });
+  }
+});
+
 // ─── DASHBOARD (dados reais do banco) ────────────────────────────────────────
 app.get("/api/dashboard", autenticar, async (req, res) => {
   try {
