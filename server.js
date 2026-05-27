@@ -45,46 +45,6 @@ function autenticar(req, res, next) {
   }
 }
 
-// ─── ESG (Google Custom Search) ───────────────────────────────────────────────
-app.post("/api/esg", async (req, res) => {
-  try {
-    const marca = String(req.body?.marca || "").trim();
-    if (!marca) return res.status(400).json({ error: "Campo 'marca' é obrigatório" });
-
-    const apiKey = process.env.GOOGLE_API_KEY;
-    const cseId = process.env.GOOGLE_CSE_ID;
-    if (!apiKey || !cseId) {
-      return res.status(500).json({
-        error: "Variáveis GOOGLE_API_KEY e GOOGLE_CSE_ID não configuradas no servidor",
-      });
-    }
-
-    const query = `${marca} ESG sustentabilidade impacto ambiental responsabilidade social relatório`;
-    const response = await axios.get("https://www.googleapis.com/customsearch/v1", {
-      params: {
-        key: apiKey,
-        cx: cseId,
-        q: query,
-        num: 5,
-        lr: "lang_pt",
-      },
-      timeout: 10000,
-    });
-
-    const items = response.data?.items || [];
-    const resultados = items.map((item) => ({
-      titulo: item.title,
-      link: item.link,
-      descricao: item.snippet,
-    }));
-
-    return res.json({ marca, resultados });
-  } catch (error) {
-    console.log("Erro ESG:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Erro ao consultar ESG na internet" });
-  }
-});
-
 // ─── DASHBOARD (dados reais do banco) ────────────────────────────────────────
 app.get("/api/dashboard", autenticar, async (req, res) => {
   try {
